@@ -13,7 +13,7 @@ def importWords():
         data = file.readlines()
 
     for x in range(len(data)):
-        data[x] = data[x].replace("\n", "") # remove this from the words
+        data[x] = data[x].replace("\n", "") # remove newline from the words so we can match with user input
 
     return data
 
