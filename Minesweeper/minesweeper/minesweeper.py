@@ -33,6 +33,23 @@ class Difficulties:
     HARD = Difficulty(name="Hard", mines=99, rows=16, columns=30)
 
 
+# A holder class to prevent having None values in the initialisation of a variable. It can be True, False or Undefined
+class TriState:
+
+    def __init__(self, value):
+        self.value = value
+
+    def __eq__(self, other):
+        return self.value == other.value
+
+
+# A class which holds our three TriState values.
+class TriStates:
+    TRUE = TriState(True)
+    FALSE = TriState(False)
+    UNDEFINED = TriState(None)
+
+
 # A class which holds the data required for the game to run. It includes:
 # - The solution board
 # - The player board
@@ -42,6 +59,7 @@ class Difficulties:
 # The class also includes methods which allow the player to interact with the board, such as flagging a cell or
 # giving hints
 class Board:
+    wonGame = TriStates.UNDEFINED
 
     def __init__(self, difficulty):
         self.difficulty = difficulty
@@ -60,8 +78,15 @@ class Board:
     # prints one of the boards, this iterates over each row and column and prints the value at that position
     # this also implements spacers between each row and column to create a "grid".
     def printBoard(self, board):
+        currentRow = 0
+        header = "    "
+        for row in range(self.difficulty.columns):
+            header += str(row + 1) + "   "
+        print(header)
         for row in board:
+            currentRow += 1
             self.printSpacer()
+            print(currentRow, end=" ")
             for cell in row:
                 print('| ' + cell, end=' ')
             print("|", end=' ')
@@ -71,16 +96,17 @@ class Board:
 
     # Prints a spacer between the rows of the board to create the horizontal lines
     def printSpacer(self):
-        print("-" * (self.difficulty.columns * 4 + 1))
+        print("  " + "—" * (self.difficulty.columns * 4 + 1))
 
     # This method performs all the checks for each "move" of the player, It checks if the player has won, hit a mine
     # or if neither opens all cells surrounding the selected cell which are not mines and do not have mines in the
     # vicinity (these cells are marked by a a value > 0).
     def check(self, row, column) -> bool:
-        game_continues = True # For some reason my IDE says this is unused, but it is returned at the end of the method.
+        game_continues = True
         if self.solution_board[row][column] == '*':
             print("You hit a mine! Game over.")
             game_continues = False
+            self.wonGame = TriStates.FALSE
         else:
             self.openAroundRecursively(row, column)
             game_continues = True
@@ -88,14 +114,16 @@ class Board:
         if self.allMinesFound():
             print("You found all the mines! You win!")
             game_continues = False
+            self.wonGame = TriStates.TRUE
 
         return game_continues
 
     # Checks cells around the cell at the given row and column and opens all until a cell with a clue is opened
     def openAroundRecursively(self, row, column):
-        if self.blank_board[row][column] != '.': # If the cell is already open, do nothing
+        if self.blank_board[row][column] != '.':  # If the cell is already open, do nothing
             return
-        if self.solution_board[row][column] == '0': # If the cell was >0 no cells should open as they are on a boundary
+        self.blank_board[row][column] = self.solution_board[row][column]
+        if self.solution_board[row][column] == '0':  # If the cell was >0 no cells should open as they are on a boundary
             self.blank_board[row][column] = self.solution_board[row][column]
             if row > 0:
                 self.openAroundRecursively(row - 1, column)
@@ -190,7 +218,7 @@ def addCues(board) -> list:
     for row in range(len(board)):
         for column in range(len(board[row])):
             if board[row][column] == '.':
-                board[row][column] = str(countMines(board, row, column)) # put in how many mines there are
+                board[row][column] = str(countMines(board, row, column))  # put in how many mines there are
     return board
 
 
@@ -264,7 +292,7 @@ def generateLeaderboard(difficulty):
 # Prints the sorted data from the generateLeaderboard method to the screen. We want to print (max) the top 10 players.
 def printLeaderboard(data):
     print("Leaderboard:")
-    if len(data) <= 9: # Prevent index out of bounds
+    if len(data) <= 9:  # Prevent index out of bounds
         for i in range(len(data)):
             print(data[i])
     else:
@@ -282,7 +310,9 @@ def main():
     start_time = int(round(time.time() * 1000))
     inputLoop(board)
     end_time = int(round(time.time() * 1000))
-    saveDataToFile(name, difficulty.name, str(end_time - start_time))
+
+    if board.wonGame == TriStates.TRUE:
+        saveDataToFile(name, difficulty.name, str(end_time - start_time))
     generateLeaderboard(difficulty)
 
 
